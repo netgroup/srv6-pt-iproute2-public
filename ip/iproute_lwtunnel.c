@@ -292,6 +292,7 @@ static const char *seg6_action_names[SEG6_LOCAL_ACTION_MAX + 1] = {
 	[SEG6_LOCAL_ACTION_END_AM]		= "End.AM",
 	[SEG6_LOCAL_ACTION_END_BPF]		= "End.BPF",
 	[SEG6_LOCAL_ACTION_END_DT46]		= "End.DT46",
+	[SEG6_LOCAL_ACTION_END_B6_ETF]		= "End.B6.ETF",
 };
 
 static const char *format_action_type(int action)
@@ -734,10 +735,11 @@ void lwt_print_encap(FILE *fp, struct rtattr *encap_type,
 	}
 }
 
-static struct ipv6_sr_hdr *parse_srh(char *segbuf, int hmac, bool encap)
+static struct ipv6_sr_hdr *
+parse_srh(char *segbuf, int hmac, bool encap, bool etf)
 {
 	struct ipv6_sr_hdr *srh;
-	int nsegs = 0;
+	int nsegs = 0, ptss_len = 0, hmac_len = 0;
 	int srhlen;
 	char *s;
 	int i;
@@ -751,8 +753,15 @@ static struct ipv6_sr_hdr *parse_srh(char *segbuf, int hmac, bool encap)
 
 	srhlen = 8 + 16*nsegs;
 
-	if (hmac)
-		srhlen += 40;
+	if (etf) {
+		ptss_len = 16;
+		srhlen += ptss_len;
+	}
+
+	if (hmac) {
+		hmac_len = 40;
+		srhlen += hmac_len;
+	}
 
 	srh = malloc(srhlen);
 	memset(srh, 0, srhlen);
@@ -774,10 +783,18 @@ static struct ipv6_sr_hdr *parse_srh(char *segbuf, int hmac, bool encap)
 		i--;
 	}
 
+	if (etf) {
+		struct sr6_tlv_ptss *ptss_tlv;
+
+		ptss_tlv = (struct sr6_tlv_ptss *)((char *)srh + srhlen - ptss_len - hmac_len);
+		ptss_tlv->tlvhdr.type = SR6_TLV_PTSS;
+		ptss_tlv->tlvhdr.len = 14;
+	}
+
 	if (hmac) {
 		struct sr6_tlv_hmac *tlv;
 
-		tlv = (struct sr6_tlv_hmac *)((char *)srh + srhlen - 40);
+		tlv = (struct sr6_tlv_hmac *)((char *)srh + srhlen - hmac_len);
 		tlv->tlvhdr.type = SR6_TLV_HMAC;
 		tlv->tlvhdr.len = 38;
 		tlv->hmackeyid = htonl(hmac);
@@ -828,7 +845,7 @@ static int parse_encap_seg6(struct rtattr *rta, size_t len, int *argcp,
 		argc--; argv++;
 	}
 
-	srh = parse_srh(segbuf, hmac, encap);
+	srh = parse_srh(segbuf, hmac, encap, false);
 	srhlen = (srh->hdrlen + 1) << 3;
 
 	tuninfo = malloc(sizeof(*tuninfo) + srhlen);
@@ -1295,10 +1312,19 @@ static int parse_encap_seg6local(struct rtattr *rta, size_t len, int *argcp,
 	}
 
 	if (srh_ok) {
+		bool encap = false, etf = false;
 		int srhlen;
 
-		srh = parse_srh(segbuf, hmac,
-				action == SEG6_LOCAL_ACTION_END_B6_ENCAP);
+		switch (action) {
+		case SEG6_LOCAL_ACTION_END_B6_ETF:
+			etf = true;
+			/* fallthrough */
+		case SEG6_LOCAL_ACTION_END_B6_ENCAP:
+			encap = true;
+			break;
+		}
+
+		srh = parse_srh(segbuf, hmac, encap, etf);
 		srhlen = (srh->hdrlen + 1) << 3;
 		ret = rta_addattr_l(rta, len, SEG6_LOCAL_SRH, srh, srhlen);
 		free(srh);

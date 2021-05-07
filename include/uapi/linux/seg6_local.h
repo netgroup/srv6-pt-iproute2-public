@@ -66,6 +66,8 @@ enum {
 	SEG6_LOCAL_ACTION_END_BPF	= 15,
 	/* decap and lookup of DA in v4 or v6 table */
 	SEG6_LOCAL_ACTION_END_DT46	= 16,
+	/* binding segment with encapsulation and path tracing*/
+	SEG6_LOCAL_ACTION_END_B6_ETF	= 17,
 
 	__SEG6_LOCAL_ACTION_MAX,
 };

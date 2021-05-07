@@ -43,6 +43,7 @@ struct ipv6_sr_hdr {
 #define SR6_TLV_OPAQUE		3
 #define SR6_TLV_PADDING		4
 #define SR6_TLV_HMAC		5
+#define SR6_TLV_PTSS		128
 
 #define sr_has_hmac(srh) ((srh)->flags & SR6_FLAG1_HMAC)
 
@@ -51,5 +52,19 @@ struct sr6_tlv {
 	__u8 len;
 	__u8 data[0];
 };
+
+struct sr6_tlv_ptss {
+	struct sr6_tlv tlvhdr;
+	__u8 tlv_data[0];
+
+	/* Most 12 significative bits are used for storing the interface index.
+	 * Remaning least 4 significative bits are used for storing the load on
+	 * the interface.
+	 */
+	__be16 rinfo;
+	__be64 timestamp;
+	__be16 sessionid;
+	__be16 seqnumber;
+} __attribute__((packed));
 
 #endif
