@@ -119,6 +119,7 @@ static const struct cmd {
 	{ "netconf",	do_ipnetconf },
 	{ "vrf",	do_ipvrf},
 	{ "sr",		do_seg6 },
+	{ "pt",		do_ipv6_hoppt },
 	{ "nexthop",	do_ipnh },
 	{ "mptcp",	do_mptcp },
 	{ "ioam",	do_ioam6 },
