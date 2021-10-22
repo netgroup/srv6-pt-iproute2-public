@@ -1,0 +1,125 @@
+.TH IP\-PT 8 "06 Sep 2021" "iproute2" "Linux"
+.SH "NAME"
+ip-pt \- IPv6 Path Tracing management
+.SH SYNOPSIS
+.sp
+.ad l
+.in +8
+.ti -8
+
+.B ip pt
+.RI "{ " COMMAND " | "
+.BR help " }"
+.sp
+.ti -8
+
+.ti -8
+.BR "ip pt show" " [ " "dev"
+.IR DEVICE " ]"
+
+.ti -8
+.B  ip pt add dev
+.I DEVICE
+.BI id " ID " tts " TMPL"
+
+.ti -8
+.B  ip pt del dev
+.I DEVICE
+.R  [
+.BI id " ID " tts " TMPL"
+.R  ]
+
+.ti -8
+.B ip pt source
+.RB "{ " add " | " del " }"
+.BI dev " DEVICE"
+
+.ti -8
+.B ip pt source show
+
+.ti -8
+.IR DEVICE " := "
+.R Inteface
+
+.ti -8
+.IR ID " := "
+.R 0..4095
+
+.ti -8
+.IR TMPL " := "
+.R template1..template4
+
+.SH DESCRIPTION
+The \fBip pt\fR command is used to configure SRv6 Path Tracing parameters.
+.PP
+Those parameters include the mapping between an interface and its associated
+identification number for path tracing purpose.
+.PP
+The \fBtts\fR \fITMPL\fR options sets a profile for the reduced timestamp field
+defined by specific template. Four templates are available and the characteristic
+are defined in the following table:
+
+.TS
+tab(;) box;
+cB | cB cB cB cB
+l  | c n n c.
+Name;IEEE 1588 bits;Rollover (ms);Precision (ms);Use Case
+_
+template1;Nanoseconds;1.04448;0.004096;DC Links
+\^;[12:19];\^;\^;\^
+_
+template2;Nanoseconds;4.17792;0.016384;DC Links
+\^;[14:21];\^;\^;\^
+_
+template3;Nanoseconds;66.84672;0.262144;WAN Links
+\^;[18:25];\^;\^;\^
+_
+template4;Nanoseconds;133.69344;0.524288;Intecontinental/Transoceanic
+\^;[19:26];\^;\^;Links
+.TE
+
+.PP
+.SS Path Tracing source probe commands
+The \fBsource\fR commands are used to manage the input inteface for path tracing
+source probes.
+.br
+It may possible to set this inteface with the \fBip pt source add
+dev\fR \fIDEVICE\fR and remove them with \fBip pt source del dev\fR \fIDEVICE\fR
+.br
+To show the current source probe interface do \fBip pt show\fR.
+
+.SH EXAMPLES
+.PP
+.SS Configure a new mapping between inteface eth0 and id 42 with tts template3
+.nf
+# ip pt add dev eth0 id 42 tts template3
+.PP
+.SS Delete the mapping betwenn inteface eth0 and id 42
+.nf
+# ip pt del dev eth0 id 42
+.PP
+.SS Show the current mapping for all intefaces
+.nf
+# ip pt show
+dev eth0 id 42 tts template3
+dev eth1 id 43 tts template2
+.PP
+.SS Set the input inteface for source path tracing probes to eth2
+.nf
+# ip pt source add dev eth2
+.PP
+.SS Unset the eth2 as input inteface for source path tracing probes
+.nf
+# ip pt source del dev eth2
+.PP
+.SS Show the current input inteface for source path tracing probes
+.nf
+# ip pt source show
+input dev eth2
+.SH SEE ALSO
+.br
+.BR ip-pt (8)
+.SH AUTHOR
+Andrea Mayer <andrea.mayer@uniroma2.it>
+.br
+Paolo Lungaroni <paolo.lungaroni@uniroma2.it>
